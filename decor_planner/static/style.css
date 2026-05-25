@@ -168,7 +168,7 @@ h1 {
 .preview-grid {
   display: grid;
   gap: 24px;
-  grid-template-columns: minmax(280px, 360px) minmax(320px, 1fr);
+  grid-template-columns: minmax(280px, 360px) minmax(320px, 1fr) 140px;
   align-items: start;
   margin-top: 22px;
 }
@@ -176,6 +176,92 @@ h1 {
 .preview-panel {
   display: grid;
   gap: 18px;
+}
+
+.toolbar {
+  padding: 12px 8px;
+}
+
+.toolbar-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  top: 24px;
+}
+
+.toolbar-section h4 {
+  margin: 0 0 6px 0;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.toolbar-section input[type="number"], .toolbar-section input[type="color"] {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(15,23,42,0.9);
+  color: var(--text);
+}
+
+.toolbar-section button {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(148,163,184,0.12);
+  background: rgba(148,163,184,0.06);
+  color: var(--text);
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .preview-grid {
+    grid-template-columns: 1fr;
+  }
+  .toolbar {
+    order: 3;
+  }
+}
+
+.preview-top {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.original-image h3 {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+}
+
+.original-image img {
+  max-width: 240px;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.plywood-preview {
+  width: 100%;
+  display: block;
+}
+
+.plywood-preview svg {
+  width: 100%;
+  height: auto;
+  max-width: 520px;
+  border-radius: 12px;
+}
+
+@media (max-width: 900px) {
+  .preview-top {
+    flex-direction: column;
+  }
+  .preview-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .preview-grid img {
@@ -396,28 +482,4 @@ h1 {
   color: var(--text);
   font-size: 0.95rem;
   line-height: 1.5;
-}
-
-.plywood-preview {
-  background: rgba(139, 90, 43, 0.15);
-  border: 3px solid rgba(139, 90, 43, 0.4);
-  border-radius: 12px;
-  padding: 20px;
-  margin: 24px 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 300px;
-}
-
-.plywood-preview svg {
-  max-width: 100%;
-  height: auto;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
-}
-
-@media (max-width: 900px) {
-  .preview-grid {
-    grid-template-columns: 1fr;
-  }
 }

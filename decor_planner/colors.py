@@ -1,7 +1,7 @@
 from PIL import Image
 
-# LEGO colors (RGB)
-LEGO_COLORS = {
+# Project palette colors (RGB)
+PALETTE_COLORS = {
     'R': (180, 0, 0),     # Red
     'U': (0, 70, 170),    # Blue
     'Y': (255, 205, 0),   # Yellow
@@ -15,4 +15,3 @@ EMOJI = {
     'R':'🟥','U':'🟦','Y':'🟨',
     'G':'🟩','W':'⬜','B':'⬛'
 }
-

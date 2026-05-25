@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LEGO Pixel Converter</title>
+    <title>Decor Pixel Planner</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
   </head>
   <body>
@@ -11,8 +11,8 @@
       <header class="hero">
         <div>
           <p class="eyebrow">Local app</p>
-          <h1>LEGO Pixel Converter</h1>
-          <p class="lead">Upload an image, then generate a blocky LEGO-style preview and export assets locally.</p>
+          <h1>Decor Pixel Planner</h1>
+          <p class="lead">Upload an image, then generate a blocky preview and export assets for woodworking decor.</p>
         </div>
       </header>
 
@@ -27,6 +27,9 @@
               <span>Upload an image</span>
               <input type="file" name="upload_image" accept="image/*" />
             </label>
+            {% if current_image %}
+            <input type="hidden" name="current_image" value="{{ current_image }}" />
+            {% endif %}
 
             <div class="grid-two">
               <label class="field-group">
@@ -72,6 +75,12 @@
         <section class="card result-card">
           <div class="preview-grid">
             <div class="color-usage">
+              {% if current_image %}
+              <div class="original-image above-colors">
+                <h3>Original image</h3>
+                <img src="{{ url_for('output_file', filename=current_image) }}" alt="Uploaded image" />
+              </div>
+              {% endif %}
               <div class="color-usage-header">
                 <h2>Colors needed</h2>
                 <p id="result_color_summary" class="color-summary">
@@ -80,17 +89,6 @@
                 <p id="result_tile_summary" class="color-summary">
                   Total tiles: {{ result.pixel_grid|length * (result.pixel_grid[0]|length) }}
                 </p>
-              </div>
-              <div class="color-editor-row">
-                <label class="field-group inline-field">
-                  <span>Paint color</span>
-                  <input type="color" id="edit_color_picker" value="#ff0000" />
-                </label>
-                <div class="selected-color-display">
-                  <span>Selected:</span>
-                  <span id="selected_color_label">#FF0000</span>
-                  <span class="selected-swatch" id="selected_color_swatch" style="background: #ff0000"></span>
-                </div>
               </div>
               <ul class="color-list" id="color_list">
                 {% for color in result.colors %}
@@ -103,25 +101,11 @@
               </ul>
             </div>
             <div class="preview-panel">
-              <div class="preview-toolbar">
-                <div class="preview-controls">
-                  <div class="preview-mode-toggle">
-                    <button type="button" data-preview-mode="dots" class="preview-mode-button active">Dots</button>
-                    <button type="button" data-preview-mode="squares" class="preview-mode-button">Squares</button>
-                  </div>
-                  <div class="preview-action-toggle">
-                    <button type="button" data-action-mode="paint" class="preview-action-button active">Paint</button>
-                    <button type="button" data-action-mode="copy" class="preview-action-button">Copy</button>
-                  </div>
-                  <label class="field-group inline-field preview-bg-field">
-                    <span>Background</span>
-                    <input type="color" id="preview_bg_picker" value="#0f172a" />
-                  </label>
-                  <div class="preview-hint">Use Copy to grab a tile color, then Paint to apply it.</div>
-                </div>
+              <div class="preview-toolbar-placeholder">
+                <div class="preview-hint">Use toolbar at right to change preview mode and sizing.</div>
               </div>
               <div class="plywood-preview" id="preview_frame">
-                <svg viewBox="0 0 500 500" width="400" height="400">
+                <svg viewBox="0 0 500 500" preserveAspectRatio="xMidYMid meet">
               <!-- Plywood frame border -->
               <defs>
                 <pattern id="wood" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -138,24 +122,63 @@
               
               <!-- Pixel grid with editable tiles -->
               {% set grid_size = result.pixel_grid | length %}
-              {% set tile_step = 440 / grid_size %}
-              {% set shape_size = tile_step * 0.8 %}
-              {% set shape_offset = (tile_step - shape_size) / 2 %}
               {% for row in result.pixel_grid %}
                 {% set row_idx = loop.index0 %}
                 {% for code in row %}
                   {% set col_idx = loop.index0 %}
-                  {% set x = 30 + col_idx * tile_step + shape_offset %}
-                  {% set y = 30 + row_idx * tile_step + shape_offset %}
                   {% if code is string %}
-                    {% set r = LEGO_COLORS[code] %}
+                    {% set r = PALETTE_COLORS[code] %}
                   {% else %}
                     {% set r = code %}
                   {% endif %}
-                  <rect x="{{ x }}" y="{{ y }}" width="{{ shape_size }}" height="{{ shape_size }}" rx="{{ shape_size / 2 }}" fill="rgb({{ r[0] }}, {{ r[1] }}, {{ r[2] }})" opacity="0.9" stroke="rgba(0,0,0,0.2)" stroke-width="0.4" class="preview-shape" data-color-hex="#{{ '%02X' % r[0] }}{{ '%02X' % r[1] }}{{ '%02X' % r[2] }}"/>
+                  <rect x="0" y="0" width="1" height="1" rx="1" fill="rgb({{ r[0] }}, {{ r[1] }}, {{ r[2] }})" opacity="0.9" stroke="rgba(0,0,0,0.2)" stroke-width="0.4" class="preview-shape" data-color-hex="#{{ '%02X' % r[0] }}{{ '%02X' % r[1] }}{{ '%02X' % r[2] }}" data-row="{{ row_idx }}" data-col="{{ col_idx }}"/>
                 {% endfor %}
               {% endfor %}
             </svg>
+          </div>
+        </div>
+        <div class="toolbar">
+          <div class="toolbar-controls">
+            <div class="toolbar-section">
+              <h4>Mode</h4>
+              <div class="preview-mode-toggle">
+                <button type="button" data-preview-mode="dots" class="preview-mode-button active">Dots</button>
+                <button type="button" data-preview-mode="squares" class="preview-mode-button">Squares</button>
+              </div>
+            </div>
+            <div class="toolbar-section">
+              <h4>Action</h4>
+              <div class="preview-action-toggle">
+                <button type="button" data-action-mode="paint" class="preview-action-button active">Paint</button>
+                <button type="button" data-action-mode="copy" class="preview-action-button">Copy</button>
+              </div>
+            </div>
+            <div class="toolbar-section">
+              <h4>Background</h4>
+              <input type="color" id="preview_bg_picker" value="#0f172a" />
+            </div>
+            <div class="toolbar-section">
+              <h4>Paint color</h4>
+              <div class="toolbar-paint-picker">
+                <input type="color" id="edit_color_picker" value="#ff0000" />
+                <div class="selected-color-display">
+                  <span id="selected_color_label">#FF0000</span>
+                  <span class="selected-swatch" id="selected_color_swatch" style="background: #ff0000"></span>
+                </div>
+              </div>
+            </div>
+            <div class="toolbar-section">
+              <h4>Dot diameter (in)</h4>
+              {% set tile_step_in = result.plywood_inches / grid_size %}
+              <input type="number" id="dot_diameter_in" step="0.125" min="0.01" value="{{ (tile_step_in * 0.8) | round(3) }}" />
+            </div>
+            <div class="toolbar-section">
+              <h4>Tile spacing (in)</h4>
+              <input type="number" id="tile_spacing_in" step="0.0625" min="0" value="{{ (tile_step_in * 0.2) | round(3) }}" />
+            </div>
+            <div class="toolbar-section">
+              <button type="button" id="reset_sizing">Reset sizing</button>
+            </div>
           </div>
         </div>
       </div>
@@ -176,11 +199,24 @@
         const actionModeButtons = document.querySelectorAll('[data-action-mode]');
         const colorSummary = document.getElementById('result_color_summary');
         const tileSummary = document.getElementById('result_tile_summary');
-        const previewShapes = Array.from(document.querySelectorAll('.preview-shape'));
         const reducedColorCount = {{ result.reduced_colors }};
-        const totalTileCount = previewShapes.length;
+        const GRID_SIZE = {{ grid_size }};
+        const PLYWOOD_INCHES = {{ result.plywood_inches }};
+
+        const svgInnerSize = 440; // matches template
+        const unitsPerInch = svgInnerSize / PLYWOOD_INCHES;
+        const tileStepUnits = svgInnerSize / GRID_SIZE;
+        const tileStepInches = PLYWOOD_INCHES / GRID_SIZE;
+
+        const dotDiameterInput = document.getElementById('dot_diameter_in');
+        const tileSpacingInput = document.getElementById('tile_spacing_in');
+        const resetBtn = document.getElementById('reset_sizing');
+
+        let previewShapes = Array.from(document.querySelectorAll('.preview-shape'));
+        let totalTileCount = previewShapes.length;
         let selectedColor = colorPicker ? colorPicker.value.toUpperCase() : '#FF0000';
         let actionMode = 'paint';
+        let currentShapeUnits = tileStepUnits * 0.8;
 
         function setSelectedColor(color) {
           selectedColor = color.toUpperCase();
@@ -247,12 +283,41 @@
           updateColorItem(newHex, 1);
         }
 
+        function applySizing() {
+          const spacingIn = parseFloat(tileSpacingInput ? tileSpacingInput.value : (tileStepInches * 0.2)) || 0;
+          let desiredShapeIn = parseFloat(dotDiameterInput ? dotDiameterInput.value : (tileStepInches * 0.8)) || (tileStepInches * 0.8);
+          // prefer explicit spacing: shape = tileStep - spacing
+          if (!isNaN(spacingIn)) {
+            desiredShapeIn = Math.max(0.01, tileStepInches - spacingIn);
+          }
+          currentShapeUnits = Math.max(1, desiredShapeIn * unitsPerInch);
+          const offset = (tileStepUnits - currentShapeUnits) / 2;
+
+          previewShapes.forEach((shape) => {
+            const row = parseInt(shape.dataset.row, 10);
+            const col = parseInt(shape.dataset.col, 10);
+            const x = 30 + col * tileStepUnits + offset;
+            const y = 30 + row * tileStepUnits + offset;
+            shape.setAttribute('x', x);
+            shape.setAttribute('y', y);
+            shape.setAttribute('width', currentShapeUnits);
+            shape.setAttribute('height', currentShapeUnits);
+            const isDots = previewFrame.classList.contains('preview-mode-dots');
+            shape.setAttribute('rx', isDots ? currentShapeUnits / 2 : 0);
+          });
+        }
+
         if (previewBgPicker) {
           previewBgPicker.addEventListener('input', () => setPreviewBackground(previewBgPicker.value));
         }
 
-        updateTileSummary();
-        setPreviewBackground(previewBgPicker ? previewBgPicker.value : '#0f172a');
+        if (dotDiameterInput) dotDiameterInput.addEventListener('input', applySizing);
+        if (tileSpacingInput) tileSpacingInput.addEventListener('input', applySizing);
+        if (resetBtn) resetBtn.addEventListener('click', () => {
+          tileSpacingInput.value = (tileStepInches * 0.2).toFixed(3);
+          dotDiameterInput.value = (tileStepInches * 0.8).toFixed(3);
+          applySizing();
+        });
 
         function setPreviewMode(mode) {
           previewModeButtons.forEach((btn) => {
@@ -261,10 +326,8 @@
           });
           previewFrame.classList.toggle('preview-mode-dots', mode === 'dots');
           previewFrame.classList.toggle('preview-mode-squares', mode === 'squares');
-          previewShapes.forEach((shape) => {
-            const radius = mode === 'dots' ? shape.getBBox().width / 2 : 0;
-            shape.setAttribute('rx', radius);
-          });
+          // update corner radius after sizing
+          applySizing();
         }
 
         function setActionMode(mode) {
@@ -283,29 +346,33 @@
         document.querySelectorAll('.color-item').forEach((item) => {
           item.addEventListener('click', () => {
             const hex = item.dataset.colorHex;
-            if (hex) {
-              setSelectedColor(hex);
-            }
+            if (hex) setSelectedColor(hex);
           });
         });
 
-        previewShapes.forEach((shape) => {
-          shape.addEventListener('click', () => {
+        function shapeClickHandler(shape) {
+          return () => {
             const tileColor = shape.dataset.colorHex;
             if (actionMode === 'copy') {
               if (tileColor) setSelectedColor(tileColor);
               return;
             }
-
             const oldColor = tileColor;
             if (!oldColor || oldColor.toUpperCase() === selectedColor) return;
             shape.dataset.colorHex = selectedColor;
             shape.setAttribute('fill', selectedColor);
-            const radius = previewFrame.classList.contains('preview-mode-dots') ? shape.getBBox().width / 2 : 0;
-            shape.setAttribute('rx', radius);
+            shape.setAttribute('rx', previewFrame.classList.contains('preview-mode-dots') ? (parseFloat(shape.getAttribute('width')) / 2) : 0);
             updateCounts(oldColor, selectedColor);
+          };
+        }
+
+        function attachShapeHandlers() {
+          previewShapes.forEach((shape) => {
+            shape.removeEventListener('click', shape._handler);
+            shape._handler = shapeClickHandler(shape);
+            shape.addEventListener('click', shape._handler);
           });
-        });
+        }
 
         previewModeButtons.forEach((button) => {
           button.addEventListener('click', () => setPreviewMode(button.dataset.previewMode));
@@ -315,9 +382,13 @@
           button.addEventListener('click', () => setActionMode(button.dataset.actionMode));
         });
 
+        // initial layout
         setPreviewMode('dots');
         setActionMode('paint');
+        applySizing();
+        attachShapeHandlers();
         updateColorSummary();
+        updateTileSummary();
       });
     </script>
   </body>

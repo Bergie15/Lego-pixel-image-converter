@@ -8,13 +8,11 @@ from PIL import Image
 from werkzeug.utils import secure_filename
 
 try:
-    from .colors import EMOJI, LEGO_COLORS
-    from .export_spike import export
+    from .colors import EMOJI, PALETTE_COLORS
     from .image_to_pixels import image_to_pixel_map
     from .main import create_bitdepth_assets
 except Exception:
-    from colors import EMOJI, LEGO_COLORS
-    from export_spike import export
+    from colors import EMOJI, PALETTE_COLORS
     from image_to_pixels import image_to_pixel_map
     from main import create_bitdepth_assets
 
@@ -30,11 +28,11 @@ SIZE_PRESETS = [
     {"key": "medium", "label": "Medium / balanced", "size": 24, "hint": "Good detail without too much extra work."},
     {"key": "large", "label": "Large / feature", "size": 32, "hint": "Great for wall panels or feature pieces."},
     {"key": "premium", "label": "Premium / detailed", "size": 48, "hint": "Higher detail for larger, more expensive art."},
-    {"key": "epic", "label": "Epic / high-detail", "size": 64, "hint": "Best for big, detailed woodworking pieces."},
+    {"key": "epic", "label": "Epic / high-detail", "size": 48, "hint": "Max single-sheet 48×96 in plywood; assemble for larger pieces."},
     {"key": "8bit", "label": "8-bit / NES-style", "size": 16, "hint": "Classic low-detail game art like early Mario."},
     {"key": "16bit", "label": "16-bit / SNES-style", "size": 32, "hint": "Retro pixel art with more colors and detail."},
     {"key": "32bit", "label": "32-bit / arcade", "size": 48, "hint": "Higher-resolution pixel art for stronger detail."},
-    {"key": "64bit", "label": "64-bit / modern pixel", "size": 64, "hint": "Detailed pixel art suitable for larger game-style pieces."},
+    {"key": "64bit", "label": "64-bit / modern pixel", "size": 48, "hint": "Max single-sheet 48×96 in plywood; assemble for larger pieces."},
 ]
 PRESET_MAP = {preset["key"]: preset for preset in SIZE_PRESETS}
 
@@ -44,11 +42,11 @@ PLYWOOD_SUGGESTIONS = {
     "medium": "~24×24 in finished (use 24×24 or 24×48 plywood)",
     "large": "~32×32 in finished (use 24×48 or larger plywood)",
     "premium": "~48×48 in finished (use 48×96 or assemble from multiple sheets)",
-    "epic": "~64×64 in finished (assemble from multiple 48×96 sheets)",
+    "epic": "~48×48 in finished (use 48×96 plywood; assemble for larger)",
     "8bit": "~16×16 in finished (use 24×24 or 24×48 plywood)",
     "16bit": "~32×32 in finished (use 24×48 or 48×48 plywood)",
     "32bit": "~48×48 in finished (use 48×96 plywood)",
-    "64bit": "~64×64 in finished (large - assemble from multiple sheets)",
+    "64bit": "~48×48 in finished (max single sheet 48×96; assemble for larger)",
 }
 
 PLYWOOD_DIMENSIONS = {
@@ -57,11 +55,11 @@ PLYWOOD_DIMENSIONS = {
     "medium": 24,
     "large": 32,
     "premium": 48,
-    "epic": 64,
+    "epic": 48,
     "8bit": 16,
     "16bit": 32,
     "32bit": 48,
-    "64bit": 64,
+    "64bit": 48,
 }
 
 
@@ -92,7 +90,7 @@ def save_colors(pixel_map):
                 code_label = f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
                 emoji = ""
             else:
-                rgb = LEGO_COLORS.get(code, (0, 0, 0))
+                rgb = PALETTE_COLORS.get(code, (0, 0, 0))
                 code_label = code
                 emoji = EMOJI.get(code, "")
             fh.write(f"{code_label},{count},{rgb[0]},{rgb[1]},{rgb[2]},{emoji}\n")
@@ -123,12 +121,15 @@ def index():
     selected_preset = "medium"
 
     selected_color_count = "8"
+    current_image = None
 
     if request.method == "POST":
         upload_file = request.files.get("upload_image")
         selected_preset = request.form.get("size_preset", "custom")
         size_value = request.form.get("size", size_value)
         selected_color_count = request.form.get("color_count", selected_color_count)
+        # previously uploaded image (persist between requests)
+        current_image = request.form.get("current_image")
 
         if selected_preset in PRESET_MAP:
             size_value = str(PRESET_MAP[selected_preset]["size"])
@@ -149,16 +150,32 @@ def index():
             selected_color_count = "2"
 
         image_path = None
+        # If a new upload was provided, save it and update current_image
         if upload_file and upload_file.filename:
             if allowed_file(upload_file.filename):
                 filename = secure_filename(upload_file.filename)
                 unique_name = f"{uuid.uuid4().hex[:8]}_{filename}"
                 image_path = os.path.join(IMAGES_DIR, unique_name)
                 upload_file.save(image_path)
+                # current_image is the path relative to repo root (for output route)
+                current_image = os.path.relpath(image_path, REPO_ROOT)
             else:
                 error = "Please upload a supported image file (png, jpg, jpeg, gif, bmp)."
         else:
-            error = "Please upload an image file."
+            # No new upload — try to use previously uploaded image
+            if current_image:
+                # Resolve and validate path
+                candidate = os.path.normpath(os.path.join(REPO_ROOT, current_image))
+                try:
+                    common = os.path.commonpath([REPO_ROOT, candidate])
+                except Exception:
+                    common = ""
+                if common == REPO_ROOT and os.path.exists(candidate):
+                    image_path = candidate
+                else:
+                    error = "Previously uploaded image not found; please upload again."
+            else:
+                error = "Please upload an image file."
 
         if image_path and not error:
             size_arg = size if size > 0 else None
@@ -169,7 +186,6 @@ def index():
                 color_count=color_count,
             )
             save_colors(pixel_map)
-            export(pixel_map, filename=os.path.join(REPO_ROOT, "spike_pixels.txt"))
             create_bitdepth_assets(image_path, size=size_arg, out_dir=ASSETS_DIR, scale=8)
 
             colors = []
@@ -180,7 +196,7 @@ def index():
                     label = f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
                     emoji = ""
                 else:
-                    rgb = LEGO_COLORS.get(code, (0, 0, 0))
+                    rgb = PALETTE_COLORS.get(code, (0, 0, 0))
                     label = code
                     emoji = EMOJI.get(code, "")
                 colors.append({
@@ -198,6 +214,9 @@ def index():
                 "reduced_colors": color_count,
                 "plywood_inches": PLYWOOD_DIMENSIONS.get(selected_preset, size) if selected_preset in PLYWOOD_DIMENSIONS else size,
             }
+            # expose relative image path for template to show original image and persist
+            if image_path:
+                current_image = os.path.relpath(image_path, REPO_ROOT)
 
     return render_template(
         "index.html",
@@ -207,9 +226,10 @@ def index():
         selected_color_count=selected_color_count,
         selected_preset=selected_preset,
         size_presets=SIZE_PRESETS,
-        LEGO_COLORS=LEGO_COLORS,
+        PALETTE_COLORS=PALETTE_COLORS,
         preset_hint=(PRESET_MAP[selected_preset]["hint"] if selected_preset in PRESET_MAP else ""),
         preset_plywood=(PLYWOOD_SUGGESTIONS.get(selected_preset, "") if selected_preset else ""),
+        current_image=current_image,
     )
 
 
