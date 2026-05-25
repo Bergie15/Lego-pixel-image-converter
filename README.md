@@ -39,6 +39,16 @@ CLI flags:
 - `--size N` (default 64): resize the image to N x N before conversion. Use `--size 0` or leave unset to skip resizing (not recommended for large inputs).
 - `--scale S` (default 8): scale factor for the saved blocky preview PNG (`lego_preview.png`) and generated assets (each logical LEGO pixel becomes SxS pixels in the outputs).
 
+### Local web UI
+
+You can also run a simple local interface instead of the CLI. After installing the requirements, start the app from the repo root:
+
+```powershell
+python .\lego_pixel_bot\app.py
+```
+
+Then open `http://127.0.0.1:5000` in your browser. The page lets you upload an image, choose an existing file from `images/`, and generate previews and asset exports.
+
 Example:
 
 ````powershell

@@ -1,4 +1,7 @@
-from virtual_robot import VirtualRobot
+try:
+    from .virtual_robot import VirtualRobot
+except Exception:
+    from virtual_robot import VirtualRobot
 
 COLOR_BINS = {
     'R':(-2,0),

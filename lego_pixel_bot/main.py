@@ -2,12 +2,19 @@ import os
 import sys
 import glob
 import argparse
-from image_to_pixels import image_to_pixel_map
-from planner import build
-from export_spike import export
-from colors import EMOJI, LEGO_COLORS
 from collections import Counter
 from PIL import Image
+
+try:
+    from .image_to_pixels import image_to_pixel_map
+    from .planner import build
+    from .export_spike import export
+    from .colors import EMOJI, LEGO_COLORS
+except Exception:
+    from image_to_pixels import image_to_pixel_map
+    from planner import build
+    from export_spike import export
+    from colors import EMOJI, LEGO_COLORS
 
 
 def _ensure_dir(path):
@@ -17,7 +24,7 @@ def _ensure_dir(path):
         pass
 
 
-def create_bitdepth_assets(src_path, size, out_dir, scale=8):
+def create_bitdepth_assets(src_path, size=None, out_dir=None, scale=8):
     """Create asset images for multiple bit-depth targets.
 
     Outputs paletted (1/2/4/8-bit) versions, an RGB565-like 16-bit reduced
@@ -26,7 +33,8 @@ def create_bitdepth_assets(src_path, size, out_dir, scale=8):
     """
     _ensure_dir(out_dir)
     base = Image.open(src_path).convert("RGB")
-    base = base.resize((size, size), resample=Image.NEAREST)
+    if size and size > 0:
+        base = base.resize((size, size), resample=Image.NEAREST)
 
     targets = [1, 2, 4, 8, 16, 24, 32, 48, 64]
     for bits in targets:

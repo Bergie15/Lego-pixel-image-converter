@@ -1,5 +1,9 @@
 from PIL import Image
-from colors import LEGO_COLORS, EMOJI
+
+try:
+    from .colors import LEGO_COLORS, EMOJI
+except Exception:
+    from colors import LEGO_COLORS, EMOJI
 
 def closest_color(pixel):
     """Find the LEGO color closest to a given RGB pixel."""
@@ -9,30 +13,41 @@ def closest_color(pixel):
     )
 
 
-def image_to_pixel_map(path, size=None):
+def image_to_pixel_map(path, size=None, exact_colors=False, color_count=None):
     """
-    Convert an image to a LEGO-ready pixel map.
+    Convert an image to a pixel map.
 
     Args:
         path (str): Path to image.
         size (int or None): If int, resize image to size x size.
                             If None, keep original image resolution.
+        exact_colors (bool): Preserve original RGB values when True.
+        color_count (int or None): Quantize to this many colors before mapping.
     Returns:
-        list of lists: LEGO color codes.
+        list of lists: RGB tuples or LEGO color codes.
     """
     img = Image.open(path).convert("RGB")
     if size:
         img = img.resize((size, size))
+
+    if exact_colors and color_count and color_count > 1:
+        quantized = img.quantize(colors=color_count, method=Image.MEDIANCUT)
+        img = quantized.convert("RGB")
+
     width, height = img.size
     pixels = img.load()
 
-    lego_grid = []
+    grid = []
     for y in range(height):
         row = []
         for x in range(width):
-            row.append(closest_color(pixels[x, y]))
-        lego_grid.append(row)
-    return lego_grid
+            pixel = pixels[x, y]
+            if exact_colors:
+                row.append(pixel)
+            else:
+                row.append(closest_color(pixel))
+        grid.append(row)
+    return grid
 
 
 def visualize_grid(grid):
