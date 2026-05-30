@@ -36,16 +36,9 @@
                 <span>Preset size</span>
                 <select name="size_preset">
                   <option value="custom" {% if selected_preset == 'custom' %}selected{% endif %}>Custom size</option>
-                  <optgroup label="Woodworking tiers">
-                    {% for preset in size_presets if preset.key in ['compact', 'small', 'medium', 'large', 'premium', 'epic'] %}
-                    <option value="{{ preset.key }}" {% if selected_preset == preset.key %}selected{% endif %}>{{ preset.label }} ({{ preset.size }})</option>
-                    {% endfor %}
-                  </optgroup>
-                  <optgroup label="Game-style pixel art">
-                    {% for preset in size_presets if preset.key in ['8bit', '16bit', '32bit', '64bit'] %}
-                    <option value="{{ preset.key }}" {% if selected_preset == preset.key %}selected{% endif %}>{{ preset.label }} ({{ preset.size }})</option>
-                    {% endfor %}
-                  </optgroup>
+                  {% for preset in size_presets %}
+                  <option value="{{ preset.key }}" {% if selected_preset == preset.key %}selected{% endif %}>{{ preset.label }} ({{ preset.size }})</option>
+                  {% endfor %}
                 </select>
                 <small>Select a woodworking or game-art preset.</small>
                 {% if preset_hint %}
@@ -55,10 +48,15 @@
                 <p class="preset-plywood"><strong>Suggested plywood:</strong> {{ preset_plywood }}</p>
                 {% endif %}
               </label>
-              <label class="field-group">
+              <label class="field-group" id="custom_size_field" style="{% if selected_preset != 'custom' %}display:none{% endif %}">
                 <span>Resize size</span>
                 <input type="number" name="size" min="0" value="{{ selected_size or 64 }}" />
                 <small>Use 0 to keep original resolution.</small>
+              </label>
+              <label class="field-group">
+                <span>Canvas size (in)</span>
+                <input type="number" name="canvas_inches" id="canvas_inches" min="1" step="0.5" value="{{ selected_canvas or 24 }}" />
+                <small>Physical board size. Controls peg spacing.</small>
               </label>
               <label class="field-group">
                 <span>Palette size</span>
@@ -88,6 +86,15 @@
                 </p>
                 <p id="result_tile_summary" class="color-summary">
                   Total tiles: {{ result.pixel_grid|length * (result.pixel_grid[0]|length) }}
+                </p>
+                <p class="color-summary">
+                  Peg spacing: <strong>{{ result.peg_spacing }}"</strong>
+                  ({{ result.plywood_inches }}" canvas &divide; {{ result.pixel_grid|length }} grid)
+                  {% if result.peg_spacing < 0.25 %}
+                  <span class="spacing-warning">Warning: spacing under &frac14;" is very tight for pegs or dowels.</span>
+                  {% elif result.peg_spacing < 0.5 %}
+                  <span class="spacing-caution">Note: spacing under &frac12;" works best with small pegs or paint.</span>
+                  {% endif %}
                 </p>
               </div>
               <ul class="color-list" id="color_list">
@@ -187,6 +194,14 @@
       </main>
     </div>
     <script>
+      const sizePresetSelect = document.querySelector('select[name="size_preset"]');
+      const customSizeField = document.getElementById('custom_size_field');
+      if (sizePresetSelect && customSizeField) {
+        sizePresetSelect.addEventListener('change', () => {
+          customSizeField.style.display = sizePresetSelect.value === 'custom' ? '' : 'none';
+        });
+      }
+
       document.addEventListener('DOMContentLoaded', () => {
         const previewFrame = document.getElementById('preview_frame');
         const colorPicker = document.getElementById('edit_color_picker');

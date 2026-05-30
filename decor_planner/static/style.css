@@ -107,7 +107,7 @@ h1 {
 .grid-two {
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
 }
 
 .primary-button {
@@ -142,6 +142,20 @@ h1 {
   color: #fecaca;
 }
 
+.spacing-warning {
+  display: block;
+  margin-top: 4px;
+  color: #fca5a5;
+  font-weight: 500;
+}
+
+.spacing-caution {
+  display: block;
+  margin-top: 4px;
+  color: #fcd34d;
+  font-weight: 500;
+}
+
 .result-header {
   display: flex;
   justify-content: space-between;
@@ -168,7 +182,7 @@ h1 {
 .preview-grid {
   display: grid;
   gap: 24px;
-  grid-template-columns: minmax(280px, 360px) minmax(320px, 1fr) 140px;
+  grid-template-columns: minmax(0, 360px) minmax(0, 1fr) 140px;
   align-items: start;
   margin-top: 22px;
 }
@@ -221,6 +235,19 @@ h1 {
   }
   .toolbar {
     order: 3;
+    padding: 0;
+  }
+  .toolbar-controls {
+    flex-direction: row;
+    flex-wrap: wrap;
+    position: static;
+    gap: 8px;
+  }
+  .toolbar-section {
+    flex: 1 1 130px;
+  }
+  .preview-hint {
+    display: none;
   }
 }
 
@@ -259,8 +286,54 @@ h1 {
   .preview-top {
     flex-direction: column;
   }
-  .preview-grid {
-    grid-template-columns: 1fr;
+}
+
+@media (max-width: 600px) {
+  .page-shell {
+    padding: 12px 12px 40px;
+  }
+
+  .hero {
+    padding: 20px 16px;
+    border-radius: 20px;
+  }
+
+  h1 {
+    font-size: clamp(1.8rem, 7vw, 2.4rem);
+  }
+
+  .card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .primary-button {
+    width: 100%;
+  }
+
+  .color-list {
+    max-height: 220px;
+  }
+
+  .original-image img {
+    max-width: 100%;
+  }
+
+  .plywood-preview svg {
+    max-width: 100%;
+  }
+
+  .toolbar-section {
+    flex: 1 1 110px;
+  }
+
+  .toolbar-section input[type="number"] {
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
+
+  .form-card input,
+  .form-card select {
+    font-size: 16px; /* prevents iOS zoom on focus */
   }
 }
 
@@ -472,6 +545,7 @@ h1 {
   font-weight: 700;
   font-size: 0.92rem;
 }
+
 
 .emoji-map pre {
   margin: 0;
